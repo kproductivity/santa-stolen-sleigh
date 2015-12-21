@@ -48,7 +48,7 @@ for (i in 1:k)
 {
     newClusters <- data.frame(cluster1=c(1:k), cluster2=cutree(hc, k=i))
     evalClusters <- merge(firstClusters, newClusters, by="cluster1")
-    if (max(aggregate(Weight~cluster2, data=evalClusters, FUN=sum)) <= wlimit) break
+    if (max(aggregate(Weight~cluster2, data=evalClusters, FUN=sum)$Weight) <= wlimit) break
 }
 
 #Write submission file
