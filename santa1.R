@@ -1,30 +1,59 @@
+ptm <- proc.time()
+
 library(data.table)
 library(geosphere)
-library(cluster)
+library(fastcluster) #See http://www.jstatsoft.org/article/view/v053i09
+library(ddR)
+library(kmeans.ddR)
 
-#Read gift location data
+#Read data
+cat("Reading data... \n")
 gifts <- fread("input/gifts.csv")
 
-str(gifts)
-dim(gifts)
+#Calculate first tier clusters
+#as suggested by William Cukierski (TY!)
+Location <- cbind(gifts[, Longitude], gifts[, Latitude])
+summary(Location)
 
-################################
-# Ward Hierarchical Clustering #
-################################
+dgifts <- as.darray(Location)
+k <- 5000 #to later tune
+first <- dkmeans(dgifts, centers = k)
 
-#d <- dist(gifts[,Latitude, Longitude], method = "euclidean") # distance matrix
+#Allocate new centers
+#newCenters <- data.frame(cluster1=c(1:k), first$centers)
+names(newCenters)[2:3]<-c("Longitude", "Latitude")
+firstClusters <- data.frame(GiftId=c(1:100000),
+                            Weight=gifts$Weight,
+                            cluster1=predict(first, Location))
+#firstClusters <- merge(firstClusters, newCenters, by="cluster")
 
-# Use Haversine distance 
-myGift <- as.matrix(gifts[,Latitude,Longitude])
-t.myGift <- t(myGift)
-myDist <- as.dist(apply(myGift, 1, function(x) distHaversine(c(x[2],x[1]),
-                                                             c(t.myGift[2,],t.myGift[1,]))))
+#Calculate distances
+cat("Calculating Haversine distances... \n")
 
-fit <- hclust(myDist, method="ward") 
-plot(fit) # display dendogram
-groups <- cutree(fit, k=5) # cut tree into 5 clusters
-# draw dendogram with red borders around the 5 clusters 
-rect.hclust(fit, k=5, border="red")
+ByLocation <- cbind(first$centers[,1], first$centers[,2])
+d <- as.dist(apply(ByLocation, 1,
+                   function(x) distHaversine(x, ByLocation)))
 
+#Hierarchical cluster analysis
+cat("Calculating clusters... \n")
+hc <- hclust(d, method = "centroid")
 
 
+#Find the number of clusters that satisfy the weight limit
+#Ideally, this should've been done together with the clustering phase, though
+cat("Grouping clusters... \n")
+wlimit <- 1000
+
+for (i in 1:k)
+{
+    newClusters <- data.frame(cluster1=c(1:k), cluster2=cutree(hc, k=i))
+    evalClusters <- merge(firstClusters, newClusters, by="cluster1")
+    if (max(aggregate(Weight~cluster2, data=evalClusters, FUN=sum)) <= wlimit) break
+}
+
+#Write submission file
+submit <- data.frame(GiftId=evalClusters$GiftId, TripId=evalClusters$cluster2)
+write.table(submit, file="submission.csv", row.names = F)
+
+cat("Processing time:")
+proc.time() - ptm
