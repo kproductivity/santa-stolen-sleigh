@@ -14,6 +14,7 @@ cat("Grouping clusters... \n")
 gifts$TripId <- c(1:100000)
 
 #Set parameters
+set.seed(123)
 wlimit <- 1000
 k <- 2000
 
