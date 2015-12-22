@@ -22,7 +22,7 @@ first <- kmeans(Location, centers = k.init, iter.max = 50)
 gifts$cluster <- first$cluster
 
 #First clustering results
-summary(aggregate(Weight~TripId, data=gifts, sum)$Weight)
+summary(aggregate(Weight~cluster, data=gifts, sum)$Weight)
 
 
 #Then, hierarchical clustering on the clustered centers
@@ -34,15 +34,15 @@ d <- as.dist(apply(ByLocation, 1,
 second <- hclust(d)
 
 for (i in 1000:k.init){
-    newClusters <- data.frame(TripId=c(1:k.init), cluster=cutree(second, k=i))
-    evalClusters <- merge(gifts, newClusters, by="TripId")
+    newClusters <- data.frame(cluster=c(1:k.init), TripId=cutree(second, k=i))
+    evalClusters <- merge(gifts, newClusters, by="cluster")
     if (max(aggregate(Weight~cluster, data=evalClusters, FUN=sum)$Weight) <= wlimit) break
 }    
 
 
 #Write submission file
 cat("Saving file... \n")
-submit <- data.frame(GiftId=gifts$GiftId, TripId=gifts$cluster)
+submit <- data.frame(GiftId=gifts$GiftId, TripId=gifts$TripId)
 write.csv(submit, file="submission.csv", row.names = F)
 
 cat("Processing time:")
