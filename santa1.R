@@ -36,7 +36,7 @@ second <- hclust(d)
 for (i in 1000:k.init){
     newClusters <- data.frame(cluster=c(1:k.init), TripId=cutree(second, k=i))
     evalClusters <- merge(gifts, newClusters, by="cluster")
-    if (max(aggregate(Weight~cluster, data=evalClusters, FUN=sum)$Weight) <= wlimit) break
+    if (max(aggregate(Weight~TripId, data=evalClusters, FUN=sum)$Weight) <= wlimit) break
 }    
 
 
